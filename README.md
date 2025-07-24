@@ -25,5 +25,5 @@ Open the respective HTML files in a web browser to use the visualization tools:
 
 ## Dependencies
 
-- ECharts 5.js (included in pathway/js/)
+- ECharts@5.js (included in pathway/js/)
 - Modern web browser with JavaScript support
