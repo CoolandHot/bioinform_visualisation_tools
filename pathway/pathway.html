@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Pathway Network Visualisation</title>
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <link rel="stylesheet" href="./css/pathway_main.css">
+  <script>
+    // Global variables to store dynamic JSON data
+    let dynamicSeparateSets = null;
+    let dynamicMergePathway = null;
+    let separateJsonPath = null;
+    let mergeJsonPath = null;
+
+    // Standalone mode - no predefined files, use file upload only
+    const predefinedFiles = {};
+
+    console.log('Standalone mode - use file upload to load data');
+  </script>
+</head>
+
+<body style="height: 99%; width: 99%; margin: 0">
+  <!-- Loading Spinner Overlay -->
+  <div id="loading-overlay" class="hidden" aria-live="polite">
+    <div class="spinner"></div>
+    <span class="loading-text">Processing files...</span>
+  </div>
+  <div id="panel" class="panelmask hidden" aria-modal="true" role="dialog">
+    <div class="panel-content">
+      <h3></h3>
+      <p></p>
+      <div id="small_container" style="height: 400px; width: 600px;"></div>
+      <button class="close-panel-btn" aria-label="Close details panel" style="margin-top:10px;">Close</button>
+    </div>
+  </div>
+  <div id="info-board" aria-label="Graph attributes panel">
+    <div class="info-board-header">
+      <h4>Graph attributes</h4>
+      <a href="#" class="download-btn" title="Download CSV of top pathways">Download CSV</a>
+      <button class="close-btn" aria-label="Close info panel">×</button>
+    </div>
+    <div class="circle" title="Show graph attributes">
+      <i>i</i>
+    </div>
+    <div class="graph-propert-content"></div>
+  </div>
+  <script>
+    const info_board = document.querySelector('#info-board');
+    const info_hiden_circle = document.querySelector('#info-board .circle');
+    const info_board_closeBtn = document.querySelector('#info-board .close-btn');
+
+    info_hiden_circle.addEventListener('click', () => {
+      info_board.classList.add('active');
+      info_hiden_circle.classList.add('active');
+    });
+
+    info_board_closeBtn.addEventListener('click', () => {
+      info_board.classList.remove('active');
+      info_hiden_circle.classList.remove('active');
+    });
+    // Add close button for panel
+    document.querySelector('.close-panel-btn').addEventListener('click', () => {
+      document.getElementById("panel").classList.add("hidden");
+    });
+  </script>
+  <div id="container" style="height: 100%" aria-label="Main pathway graph"></div>
+  <div id="control-panel" aria-label="Controls panel">
+    <div class="control-panel-header" id="toggle-control-header" tabindex="0" aria-expanded="true">
+      <h4>Controls</h4>
+      <button id="toggle-control-panel" aria-label="Toggle controls panel">-</button>
+    </div>
+    <div id="control-panel-content">
+      <!-- Graph Controls -->
+      <div class="control-group">
+        <h5>Graph Controls</h5>
+        <div>
+          <label for="threshold_slider">Link threshold (common genes): <span>20</span></label>
+          <input type="range" min="0" max="120" value="20" id="threshold_slider" title="Adjust minimum number of common genes for links">
+        </div>
+        <div class="switch-container">
+          <span>Integrated nodes view</span>
+          <input type="checkbox" id="nodeMerge_switch" checked aria-checked="true" title="Toggle between merged and separate node views"/><label for="nodeMerge_switch" title="Toggle merged/separate view"></label>
+        </div>
+        <div>
+          <label for="filter_pathway">Highlight pathway:</label>
+          <input list="pathway_names" type="text" id="filter_pathway" placeholder="Type pathway name..." title="Type and press Enter to highlight a pathway" />
+          <datalist id="pathway_names"></datalist>
+        </div>
+      </div>
+      <!-- File Upload -->
+      <div class="control-group">
+        <h5>Upload Files</h5>
+        <!-- CSV Upload -->
+        <div class="upload-section">
+          <label for="csvInput">CSV Files:</label>
+          <input type="file" id="csvInput" multiple accept=".csv" title="Upload CSV files for pathway enrichment" />
+          <div id="file-preview" class="file-preview"></div>
+          <button id="process-csv" title="Process uploaded CSV files">Process CSV Files</button>
+          <button id="download-separate-json" class="download-json-btn" style="margin-top:6px;" title="Download Separate Sets JSON" disabled>Download Separate Sets JSON</button>
+          <button id="download-merge-json" class="download-json-btn" style="margin-top:6px;" title="Download Merged Pathway JSON" disabled>Download Merged Pathway JSON</button>
+        </div>
+        <!-- JSON Upload -->
+        <div class="upload-section">
+          <label for="jsonInput">JSON Files:</label>
+          <input type="file" id="jsonInput" multiple accept=".json" title="Upload JSON files for saved networks" />
+          <div id="json-file-preview" class="file-preview"></div>
+          <button id="process-json" title="Load uploaded JSON files">Load JSON Files</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const toggleHeader = document.getElementById('toggle-control-header');
+    const controlPanelContent = document.getElementById('control-panel-content');
+    const toggleButton = document.getElementById('toggle-control-panel');
+
+    toggleHeader.addEventListener('click', () => {
+      const isHidden = controlPanelContent.style.display === 'none';
+      controlPanelContent.style.display = isHidden ? 'block' : 'none';
+      toggleButton.textContent = isHidden ? '-' : '+';
+    });
+    // Animate control panel toggle
+    toggleHeader.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') toggleHeader.click();
+    });
+  </script>
+  <script type="text/javascript" src="./js/echarts_5.js"></script>
+  <script src="./js/pathway_graph_propert.js"></script>
+  <script src="./js/pathway_main.js" defer>
+    // the script is deferred only after the above scripts are executed.
+  </script>
+</body>
+
+</html>

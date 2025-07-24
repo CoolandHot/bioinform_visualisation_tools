@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Investigating the resulting gene lists</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='css/venn_main.css'>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/venn.js@0.2.20/build/venn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+</head>
+
+<body>
+    <div id="panel" class="panelmask hidden">
+        <div class="panel-content"></div>
+    </div>
+
+    <div class="container">
+        <div class="global-gadget">
+            <div class="interrogation-group">
+                <div class="radio-group">
+                    <input type="radio" name="interrogation-group" id="interrogate-pathway" value="pathway">
+                    <label for="interrogate-pathway">Pathway</label>
+                    <input type="radio" name="interrogation-group" value="gene-set" id="interrogate-gene-set" checked>
+                    <label for="interrogate-gene-set">Gene Set</label>
+                </div>
+            </div>
+
+            <div class="csv_headers">
+                <div class="header-input">
+                    <label for="csv_headers_str">
+                        Headers to include
+                        <span class="hint">(p.value/q.value & name columns are required)</span>
+                        <input type="text" placeholder="',' separated" value="gene,p_val,avg_log2FC,p_val_adj"
+                            id="csv_headers_str">
+                    </label>
+                </div>
+                <div class="csv_single_headers">
+                    <div class="input-row">
+                        <label for="csv_headers_id">Unique ID column
+                            <input type="text" value="gene" id="csv_headers_id">
+                        </label>
+                        <label for="csv_headers_q_value">P.adjust column
+                            <input type="text" value="p_val_adj" id="csv_headers_q_value">
+                        </label>
+                    </div>
+                    <div class="input-row">
+                        <label for="csv_headers_log_FC">Log2FC column
+                            <input type="text" value="avg_log2FC" id="csv_headers_log_FC">
+                        </label>
+                        <label for="p_adjust_val">Filter p.adjust <
+                            <input id="p_adjust_val" type="text" value="0.05"
+                                placeholder="0.05 means remove p.adjust value >= 5%" />
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button id="createChart" class="btn-primary">Generate Venn Diagram</button>
+                <div class="box-control">
+                    <button onclick="addBox()" class="btn-secondary">Add Set</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="web-gadgets">
+            <div class="set-information">
+                <button class="remove-set-btn" onclick="removeSet(this)" title="Remove this set">×</button>
+                <div class="set-header">
+                    <input type="text" name="set-name" placeholder="Set name (e.g., B vs A)" class="set-name-input" />
+                </div>
+                <div class="file-upload-frame" ondrop="handleDrop(event, this)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <input type="file" accept=".csv" style="display: none;">
+                    <div class="file-uploader">
+                        <div class="upload-icon">📁</div>
+                        <span class="upload-text">Drop CSV file here or click to browse</span>
+                        <span class="file-name"></span>
+                    </div>
+                    <button class="clear-file" onclick="clearFile(this)">Clear</button>
+                </div>
+                <div class="dataFilter-paras">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" name="reverse_fc" id="reverse_fc_DhuL">
+                        <label for="reverse_fc_DhuL">Reverse log2 Fold Change <span class="hint">(multiplies log2FC by -1, useful for comparing A vs B with B vs A)</span></label>
+                    </div>
+                    <div class="regulation">
+                        <span class="regulation-label">Regulation:</span>
+                        <div class="radio-group">
+                            <input type="radio" name="regulation_DhuL" value="wholeGeneList" id="no_regulation_DhuL" checked>
+                            <label for="no_regulation_DhuL">Whole gene list</label>
+                            <input type="radio" name="regulation_DhuL" id="down_regulation_DhuL" value="down">
+                            <label for="down_regulation_DhuL">Down-regulation</label>
+                            <input type="radio" name="regulation_DhuL" value="up" id="up_regulation_DhuL">
+                            <label for="up_regulation_DhuL">Up-regulation</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="set-information">
+                <button class="remove-set-btn" onclick="removeSet(this)" title="Remove this set">×</button>
+                <div class="set-header">
+                    <input type="text" name="set-name" placeholder="Set name (e.g., B vs A)" class="set-name-input" />
+                </div>
+                <div class="file-upload-frame" ondrop="handleDrop(event, this)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <input type="file" accept=".csv" style="display: none;">
+                    <div class="file-uploader">
+                        <div class="upload-icon">📁</div>
+                        <span class="upload-text">Drop CSV file here or click to browse</span>
+                        <span class="file-name"></span>
+                    </div>
+                    <button class="clear-file" onclick="clearFile(this)">Clear</button>
+                </div>
+                <div class="dataFilter-paras">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" name="reverse_fc" id="reverse_fc_6AQR">
+                        <label for="reverse_fc_6AQR">Reverse log2 Fold Change <span class="hint">(multiplies log2FC by -1, useful for comparing A vs B with B vs A)</span></label>
+                    </div>
+                    <div class="regulation">
+                        <span class="regulation-label">Regulation:</span>
+                        <div class="radio-group">
+                            <input type="radio" name="regulation_6AQR" value="wholeGeneList" id="no_regulation_6AQR" checked>
+                            <label for="no_regulation_6AQR">Whole gene list</label>
+                            <input type="radio" name="regulation_6AQR" id="down_regulation_6AQR" value="down">
+                            <label for="down_regulation_6AQR">Down-regulation</label>
+                            <input type="radio" name="regulation_6AQR" id="up_regulation_6AQR" value="up">
+                            <label for="up_regulation_6AQR">Up-regulation</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="chart-section">
+            <h3 id="chart-title">Venn Diagram Results</h3>
+            <div id="container"></div>
+        </div>
+    </div>
+
+    <script>
+        // Drag and drop functionality
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e, element) {
+            e.preventDefault();
+            element.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'text/csv') {
+                const fileInput = element.querySelector('input[type="file"]');
+                fileInput.files = files;
+                
+                const fileName = element.querySelector('.file-name');
+                const uploadText = element.querySelector('.upload-text');
+                fileName.textContent = files[0].name;
+                uploadText.style.display = 'none';
+                fileName.style.display = 'block';
+                
+                // Trigger change event for existing handlers
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
+        function clearFile(button) {
+            const uploadFrame = button.closest('.file-upload-frame');
+            const fileInput = uploadFrame.querySelector('input[type="file"]');
+            const fileName = uploadFrame.querySelector('.file-name');
+            const uploadText = uploadFrame.querySelector('.upload-text');
+            
+            fileInput.value = '';
+            fileName.textContent = '';
+            fileName.style.display = 'none';
+            uploadText.style.display = 'block';
+        }
+
+        // Click to upload functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploaders = document.querySelectorAll('.file-uploader');
+            uploaders.forEach(uploader => {
+                uploader.addEventListener('click', function() {
+                    const fileInput = this.closest('.file-upload-frame').querySelector('input[type="file"]');
+                    fileInput.click();
+                });
+            });
+
+            // Handle file selection via click
+            const fileInputs = document.querySelectorAll('input[type="file"]');
+            fileInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        const fileName = this.closest('.file-upload-frame').querySelector('.file-name');
+                        const uploadText = this.closest('.file-upload-frame').querySelector('.upload-text');
+                        fileName.textContent = this.files[0].name;
+                        uploadText.style.display = 'none';
+                        fileName.style.display = 'block';
+                    }
+                });
+            });
+        });
+
+        function removeSet(button) {
+            const setPanel = button.closest('.set-information');
+            const webGadgets = setPanel.parentElement;
+            
+            // Only remove if there are more than 2 sets
+            if (webGadgets.children.length > 2) {
+                setPanel.remove();
+            } else {
+                alert('You must have at least 2 sets for comparison.');
+            }
+        }
+    </script>
+    <script src='js/venn_main.js'></script>
+</body>
+
+</html>
