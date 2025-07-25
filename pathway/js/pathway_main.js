@@ -582,7 +582,13 @@ document.getElementById('filter_pathway').addEventListener('input', function() {
     }
 });
 
-// CSV Processing Functions (extracted from csv_node_link.js)
+
+
+// *******************************
+// ******** CSV Processing ********
+// *******************************
+
+// CSV Processing Functions
 const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
 
 function parseCSVLine(line) {
@@ -627,12 +633,12 @@ function parseCSVFiles(files) {
                                     try {
                                         value = JSON.parse(value.replace(/'/g, '"'));
                                     } catch {
-                                        value = value.slice(1, -1).split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
+                                        value = value.slice(1, -1).split(',').map(g => g.trim().replace(/['"]/g, '').replace(/\[|\]/g, ''));
                                     }
                                 } else if (value.includes(',')) {
-                                    value = value.split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
+                                    value = value.split(',').map(g => g.trim().replace(/['"]/g, '').replace(/\[|\]/g, ''));
                                 } else if (value) {
-                                    value = [value.replace(/['"]/g, '').replace(/^\[+|\]+$/g, '')];
+                                    value = [value.replace(/['"]/g, '').replace(/\[|\]/g, '')];
                                 } else {
                                     value = [];
                                 }
@@ -658,27 +664,6 @@ function nodeLinkSeparateSets(allTables, pairwiseCompares) {
             const pathway = row.term;
             let genes = row.overlap_genes;
             
-            // Ensure genes is always an array
-            if (!Array.isArray(genes)) {
-                if (typeof genes === 'string') {
-                    if (genes.startsWith('[') && genes.endsWith(']')) {
-                        try {
-                            genes = JSON.parse(genes.replace(/'/g, '"'));
-                        } catch {
-                            genes = genes.slice(1, -1).split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                        }
-                    } else if (genes.includes(',')) {
-                        genes = genes.split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                    } else if (genes) {
-                        genes = [genes.replace(/['"]/g, '').replace(/^\[+|\]+$/g, '')];
-                    } else {
-                        genes = [];
-                    }
-                } else {
-                    genes = [];
-                }
-            }
-            
             nodes.push({
                 name: `${pathway}(${pairwiseCompares[tableIdx]})`,
                 value: genes.length,
@@ -689,27 +674,6 @@ function nodeLinkSeparateSets(allTables, pairwiseCompares) {
             for (let otherIdx = rowIdx + 1; otherIdx < table.length; otherIdx++) {
                 const other = table[otherIdx];
                 let otherGenes = other.overlap_genes;
-                
-                // Ensure otherGenes is always an array
-                if (!Array.isArray(otherGenes)) {
-                    if (typeof otherGenes === 'string') {
-                        if (otherGenes.startsWith('[') && otherGenes.endsWith(']')) {
-                            try {
-                                otherGenes = JSON.parse(otherGenes.replace(/'/g, '"'));
-                            } catch {
-                                otherGenes = otherGenes.slice(1, -1).split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                            }
-                        } else if (otherGenes.includes(',')) {
-                            otherGenes = otherGenes.split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                        } else if (otherGenes) {
-                            otherGenes = [otherGenes.replace(/['"]/g, '').replace(/^\[+|\]+$/g, '')];
-                        } else {
-                            otherGenes = [];
-                        }
-                    } else {
-                        otherGenes = [];
-                    }
-                }
                 
                 if (pathway !== other.term) {
                     const shared = genes.filter(g => otherGenes.includes(g));
@@ -727,27 +691,6 @@ function nodeLinkSeparateSets(allTables, pairwiseCompares) {
             for (let j = tableIdx + 1; j < allTables.length; j++) {
                 allTables[j].forEach(other => {
                     let otherGenes = other.overlap_genes;
-                    
-                    // Ensure otherGenes is always an array
-                    if (!Array.isArray(otherGenes)) {
-                        if (typeof otherGenes === 'string') {
-                            if (otherGenes.startsWith('[') && otherGenes.endsWith(']')) {
-                                try {
-                                    otherGenes = JSON.parse(otherGenes.replace(/'/g, '"'));
-                                } catch {
-                                    otherGenes = otherGenes.slice(1, -1).split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                                }
-                            } else if (otherGenes.includes(',')) {
-                                otherGenes = otherGenes.split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                            } else if (otherGenes) {
-                                otherGenes = [otherGenes.replace(/['"]/g, '').replace(/^\[+|\]+$/g, '')];
-                            } else {
-                                otherGenes = [];
-                            }
-                        } else {
-                            otherGenes = [];
-                        }
-                    }
                     
                     const shared = genes.filter(g => otherGenes.includes(g));
                     if (shared.length > 0) {
@@ -780,33 +723,12 @@ function nodeLinkMergePathways(allTables, pairwiseCompares) {
             const term = row.term;
             let genes = row.overlap_genes;
             
-            // Ensure genes is always an array
-            if (!Array.isArray(genes)) {
-                if (typeof genes === 'string') {
-                    if (genes.startsWith('[') && genes.endsWith(']')) {
-                        try {
-                            genes = JSON.parse(genes.replace(/'/g, '"'));
-                        } catch {
-                            genes = genes.slice(1, -1).split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                        }
-                    } else if (genes.includes(',')) {
-                        genes = genes.split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                    } else if (genes) {
-                        genes = [genes.replace(/['"]/g, '').replace(/^\[+|\]+$/g, '')];
-                    } else {
-                        genes = [];
-                    }
-                } else {
-                    genes = [];
-                }
-            }
-            
             const source = pairwiseCompares[tableIdx];
             const geneLen = genes.length;
             if (!pathwayMap[term]) {
                 pathwayMap[term] = { overlap_genes: new Set(), source: [], source_geneLen: [] };
             }
-            genes.forEach(g => pathwayMap[term].overlap_genes.add(g.replace(/^\[+|\]+$/g, '')));
+            genes.forEach(g => pathwayMap[term].overlap_genes.add(g.replace(/^\[|\]$/g, '')));
             pathwayMap[term].source.push(source);
             pathwayMap[term].source_geneLen.push(geneLen);
         });
@@ -875,32 +797,6 @@ function nodeLinkMergePathways(allTables, pairwiseCompares) {
 // CSV Upload Handler
 async function handleFiles(files, pairwiseCompares) {
     const allTables = await parseCSVFiles(files);
-    
-    // Additional cleanup: ensure all overlap_genes are arrays
-    allTables.forEach(table => {
-        table.forEach(row => {
-            if (!Array.isArray(row.overlap_genes)) {
-                let genes = row.overlap_genes;
-                if (typeof genes === 'string') {
-                    if (genes.startsWith('[') && genes.endsWith(']')) {
-                        try {
-                            row.overlap_genes = JSON.parse(genes.replace(/'/g, '"'));
-                        } catch {
-                            row.overlap_genes = genes.slice(1, -1).split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                        }
-                    } else if (genes.includes(',')) {
-                        row.overlap_genes = genes.split(',').map(g => g.trim().replace(/['"]/g, '').replace(/^\[+|\]+$/g, ''));
-                    } else if (genes) {
-                        row.overlap_genes = [genes.replace(/['"]/g, '').replace(/^\[+|\]+$/g, '')];
-                    } else {
-                        row.overlap_genes = [];
-                    }
-                } else {
-                    row.overlap_genes = [];
-                }
-            }
-        });
-    });
     
     const separateSets = nodeLinkSeparateSets(allTables, pairwiseCompares);
     const mergePathway = nodeLinkMergePathways(allTables, pairwiseCompares);
