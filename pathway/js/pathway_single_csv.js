@@ -624,21 +624,24 @@ function nodeLinkMergePathways(allTables, pairwiseCompares) {
         const overlapGenes = Array.from(obj.overlap_genes);
         const geneLen = overlapGenes.length;
         const proportion = obj.source_geneLen.map(x => +(x / geneLen).toFixed(4));
-        return { term, overlap_genes: overlapGenes, source: obj.source, proportion, gene_len: geneLen };
+        return { term, overlap_genes: overlapGenes, source: obj.source, proportion, gene_len: geneLen, source_geneLen: obj.source_geneLen };
     });
 
     const nodes = merged.map(row => {
         let colorStops = [];
         let offset = 0;
         let printProps = [];
-        const total = row.proportion.reduce((a, b) => a + b, 0);
+        // Show gene counts per group instead of proportions
         row.source.forEach((src, i) => {
             colorStops.push({ offset, color: nameColor[src] });
-            let p = total > 0 ? +(row.proportion[i] / total).toFixed(3) : 1 / row.source.length;
+            // Use gene count for each group
+            let geneCount = row.source_geneLen[i];
+            // Estimate offset for color stops (keep as before)
+            let p = row.proportion[i];
             offset += p;
             if (offset > 1.0) offset = 1.0;
             colorStops.push({ offset, color: nameColor[src] });
-            printProps.push(`${src}: ${(p * 100).toFixed(2)}%`);
+            printProps.push(`${src}: ${geneCount} genes`);
         });
         let category = row.source.length === 1 ? row.source[0] : 'mix';
         return {
@@ -651,7 +654,7 @@ function nodeLinkMergePathways(allTables, pairwiseCompares) {
                     colorStops
                 }
             },
-            proportion: printProps.join('<br>') || `${row.source[0]} 100%`
+            proportion: printProps.join('<br>') || `${row.source[0]}: ${row.source_geneLen[0]} genes`
         };
     });
 
