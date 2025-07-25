@@ -2,9 +2,8 @@ const myChart = echarts.init(document.getElementById("container"), "dark");
 const smallChart = echarts.init(document.getElementById('small_container'), "dark");
 var graph_data_json, separated_json, merged_json;
 
-// Initialize file paths from the HTML script or set to null
-separated_json = window.initialSeparateJsonPath || null;
-merged_json = window.initialMergeJsonPath || null;
+separated_json = null;
+merged_json = null;
 
 var chart_option = {
     title: {
@@ -329,26 +328,8 @@ const update_dashboard = async function () {
     }
 }
 
-// Initialize the graph - simplified for standalone mode
-setTimeout(() => {
-    if (window.initialMergeJsonPath && window.initialSeparateJsonPath) {
-        // Only try to load if both files are predefined (user has manually set paths)
-        merged_json = window.initialMergeJsonPath;
-        separated_json = window.initialSeparateJsonPath;
-        console.log('Loading predefined files:', { merged_json, separated_json });
-        // Try to load, but don't fail if files don't exist
-        loadJsonFile(merged_json).then(data => {
-            if (data) {
-                make_graph(data);
-            } else {
-                showNoDataMessage();
-            }
-        });
-    } else {
-        console.log('Standalone mode - waiting for file upload');
-        showNoDataMessage();
-    }
-}, 500);
+// Initialize the graph
+showNoDataMessage()
 
 // Helper function to load JSON files with error handling
 async function loadJsonFile(path) {
@@ -366,12 +347,6 @@ async function loadJsonFile(path) {
 // Helper function to show no data message
 function showNoDataMessage() {
     myChart.setOption({
-        title: {
-            text: "No pathway data available",
-            subtext: "Upload CSV or JSON files to generate pathway network",
-            left: 'center',
-            top: 'center'
-        },
         graphic: {
             elements: [{
                 type: 'text',
@@ -627,7 +602,7 @@ function parseCSVFiles(files) {
                         const row = {};
                         headers.forEach((header, index) => {
                             let value = values[index] ? values[index].trim() : '';
-                            // Special handling for overlap_genes field
+                            // Accept both overlap_genes and Genes columns
                             if (header === 'overlap_genes') {
                                 if (value.startsWith('[') && value.endsWith(']')) {
                                     try {
@@ -642,8 +617,18 @@ function parseCSVFiles(files) {
                                 } else {
                                     value = [];
                                 }
+                                row['overlap_genes'] = value;
+                            } else if (header === 'Genes') {
+                                // Genes column: SCARB2;CD63;PIK3R1
+                                if (value) {
+                                    value = value.split(';').map(g => g.trim()).filter(Boolean);
+                                } else {
+                                    value = [];
+                                }
+                                row['overlap_genes'] = value;
+                            } else {
+                                row[header] = value;
                             }
-                            row[header] = value;
                         });
                         data.push(row);
                     }

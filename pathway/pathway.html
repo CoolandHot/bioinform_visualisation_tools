@@ -6,6 +6,32 @@
   <title>Pathway Network Visualisation</title>
   <link rel="icon" type="image/png" href="./favicon.png">
   <link rel="stylesheet" href="./css/pathway_main.css">
+  <style>
+    /* Make the controls panel scrollable */
+    #control-panel-content {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    
+    /* Draggable controls panel */
+    #control-panel {
+      position: absolute;
+      z-index: 1000;
+    }
+    
+    .control-panel-header {
+      cursor: move;
+      user-select: none;
+    }
+    
+    .control-panel-header:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .dragging {
+      opacity: 0.8;
+    }
+  </style>
   <script>
     // Global variables to store dynamic JSON data
     let dynamicSeparateSets = null;
@@ -66,8 +92,8 @@
   </script>
   <div id="container" style="height: 100%" aria-label="Main pathway graph"></div>
   <div id="control-panel" aria-label="Controls panel">
-    <div class="control-panel-header" id="toggle-control-header" tabindex="0" aria-expanded="true">
-      <h4>Controls</h4>
+    <div class="control-panel-header" id="toggle-control-header" tabindex="0" aria-expanded="true" title="Drag to move panel">
+      <h4>Controls ⋮⋮</h4>
       <button id="toggle-control-panel" aria-label="Toggle controls panel">-</button>
     </div>
     <div id="control-panel-content">
@@ -79,7 +105,15 @@
           <input type="range" min="0" max="120" value="20" id="threshold_slider" title="Adjust minimum number of common genes for links">
         </div>
         <div class="switch-container">
-          <span>Integrated nodes view</span>
+          <span title="Toggle between merged pathway nodes (integrated view) and separate sets (each comparison as its own node)">
+            Integrated nodes view
+            <small style="color:#888;display:block;">
+              <em>
+                (Toggle ON: merged pathways across comparisons.<br>
+                Toggle OFF: separate nodes for each comparison.)
+              </em>
+            </small>
+          </span>
           <input type="checkbox" id="nodeMerge_switch" checked aria-checked="true" title="Toggle between merged and separate node views"/><label for="nodeMerge_switch" title="Toggle merged/separate view"></label>
         </div>
         <div>
@@ -114,15 +148,68 @@
     const toggleHeader = document.getElementById('toggle-control-header');
     const controlPanelContent = document.getElementById('control-panel-content');
     const toggleButton = document.getElementById('toggle-control-panel');
+    const controlPanel = document.getElementById('control-panel');
 
-    toggleHeader.addEventListener('click', () => {
+    // Existing toggle functionality
+    toggleHeader.addEventListener('click', (e) => {
+      // Don't toggle if we're dragging
+      if (e.target.classList.contains('dragging')) return;
+      
       const isHidden = controlPanelContent.style.display === 'none';
       controlPanelContent.style.display = isHidden ? 'block' : 'none';
       toggleButton.textContent = isHidden ? '-' : '+';
     });
+
+    // Drag functionality
+    let isDragging = false;
+    let dragOffset = { x: 0, y: 0 };
+
+    toggleHeader.addEventListener('mousedown', (e) => {
+      // Don't start drag if clicking the toggle button
+      if (e.target === toggleButton) return;
+      
+      isDragging = true;
+      controlPanel.classList.add('dragging');
+      
+      const rect = controlPanel.getBoundingClientRect();
+      dragOffset.x = e.clientX - rect.left;
+      dragOffset.y = e.clientY - rect.top;
+      
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+      
+      // Keep panel within viewport bounds
+      const maxX = window.innerWidth - controlPanel.offsetWidth;
+      const maxY = window.innerHeight - controlPanel.offsetHeight;
+      
+      const boundedX = Math.max(0, Math.min(newX, maxX));
+      const boundedY = Math.max(0, Math.min(newY, maxY));
+      
+      controlPanel.style.left = boundedX + 'px';
+      controlPanel.style.top = boundedY + 'px';
+      controlPanel.style.right = 'auto';
+      controlPanel.style.bottom = 'auto';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        controlPanel.classList.remove('dragging');
+      }
+    });
+
     // Animate control panel toggle
     toggleHeader.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') toggleHeader.click();
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleHeader.click();
+      }
     });
   </script>
   <script type="text/javascript" src="./js/echarts_5.js"></script>
