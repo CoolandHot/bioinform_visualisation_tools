@@ -1,9 +1,6 @@
 const myChart = echarts.init(document.getElementById("container"), "dark");
 const smallChart = echarts.init(document.getElementById('small_container'), "dark");
-var graph_data_json, separated_json, merged_json;
-
-separated_json = null;
-merged_json = null;
+var graph_data_json;
 
 var chart_option = {
     title: {
@@ -12,20 +9,6 @@ var chart_option = {
     toolbox: {
         show: true,
         feature: {
-            myTool1: {
-                show: true,
-                title: 'upload json data',
-                icon: 'path://M512 0c-282.77 0-512 229.23-512 512s229.23 512 512 512 512-229.23 512-512-229.23-512-512-512zM768 576h-256v192h-128v-192h-256l384-384 384 384z',
-                onclick: function () {
-                    var input = document.createElement('input');
-                    input.type = 'file';
-                    input.onchange = function () {
-                        console.log("load " + input.files[0].name)
-                        make_graph(input)
-                    };
-                    input.click();
-                }
-            },
             dataView: { readOnly: true },
             saveAsImage: {}
         }
@@ -95,9 +78,9 @@ const update_dataList_input = () => {
  * @param {*} json_path_or_data either a path string, data object, or a DOM created by 
  *                              `document.createElement('input')` in js `input.onchange`
  */
-var make_graph = async (json_path_or_data) => {
+var make_graph = async (json_data) => {
     // Check for null or undefined input
-    if (!json_path_or_data) {
+    if (!json_data) {
         console.warn('No data provided to make_graph');
         return;
     }
@@ -105,33 +88,7 @@ var make_graph = async (json_path_or_data) => {
     // Clear any existing chart state first
     myChart.clear();
 
-    // read the json file or use provided data
-    if (typeof json_path_or_data === 'object' && !json_path_or_data.files) {
-        graph_data_json = json_path_or_data;
-    } else if (json_path_or_data instanceof HTMLInputElement) {
-        const file = json_path_or_data.files[0];
-        graph_data_json = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                resolve(JSON.parse(reader.result));
-            };
-            reader.readAsText(file);
-        });
-    } else if (typeof json_path_or_data === 'string') {
-        try {
-            const response = await fetch(json_path_or_data);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            graph_data_json = await response.json();
-        } catch (error) {
-            console.warn(`Failed to load JSON file: ${json_path_or_data}`, error);
-            return;
-        }
-    } else {
-        console.warn('Invalid input for make_graph');
-        return;
-    }
+    graph_data_json = json_data;
 
     // Reset chart_option to base configuration
     chart_option = {
@@ -141,20 +98,6 @@ var make_graph = async (json_path_or_data) => {
         toolbox: {
             show: true,
             feature: {
-                myTool1: {
-                    show: true,
-                    title: 'upload json data',
-                    icon: 'path://M512 0c-282.77 0-512 229.23-512 512s229.23 512 512 512 512-229.23 512-512-229.23-512-512-512zM768 576h-256v192h-128v-192h-256l384-384 384 384z',
-                    onclick: function () {
-                        var input = document.createElement('input');
-                        input.type = 'file';
-                        input.onchange = function () {
-                            console.log("load " + input.files[0].name)
-                            make_graph(input)
-                        };
-                        input.click();
-                    }
-                },
                 dataView: { readOnly: true },
                 saveAsImage: {}
             }
@@ -230,7 +173,7 @@ const update_edge_threshold = (shared_gene_threshold) => {
     update_dashboard()
 }
 
-make_graph(merged_json)
+make_graph(window.dynamicMergePathway)
 
 
 // *******************************
@@ -288,17 +231,9 @@ const update_dashboard = async function () {
     dashboard_content.appendChild(createTable(top_degree, "degree"));
 
     // create csv file and add as a link
-    if (separated_json) {
+    if (window.dynamicSeparateSets) {
         try {
-            let json_data;
-            if (window.dynamicSeparateSets) {
-                json_data = window.dynamicSeparateSets;
-            } else {
-                const response = await fetch(separated_json);
-                if (response.ok) {
-                    json_data = await response.json();
-                }
-            }
+            let json_data = window.dynamicSeparateSets;
 
             if (json_data) {
                 const find_shared_genes = (pathway, score, table_attr) => {
@@ -330,19 +265,6 @@ const update_dashboard = async function () {
 
 // Initialize the graph
 showNoDataMessage()
-
-// Helper function to load JSON files with error handling
-async function loadJsonFile(path) {
-    try {
-        const response = await fetch(path);
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.log('Could not load JSON file:', path);
-    }
-    return null;
-}
 
 // Helper function to show no data message
 function showNoDataMessage() {
@@ -377,7 +299,7 @@ threshold_slider.addEventListener('input', () => {
 // toggle between the two json files
 document.getElementById("nodeMerge_switch").addEventListener("change", (e) => {
     if (e.target.checked) {
-        const mergeData = window.dynamicMergePathway || merged_json;
+        const mergeData = window.dynamicMergePathway;
         if (mergeData) {
             make_graph(mergeData);
         } else {
@@ -385,7 +307,7 @@ document.getElementById("nodeMerge_switch").addEventListener("change", (e) => {
             e.target.checked = false; // Reset the switch
         }
     } else {
-        const separateData = window.dynamicSeparateSets || separated_json;
+        const separateData = window.dynamicSeparateSets;
         if (separateData) {
             make_graph(separateData);
         } else {
@@ -408,20 +330,12 @@ myChart.on('click', async (params) => {
     if (params.dataType === 'node') {
         document.getElementById("panel").classList.remove("hidden");
 
-        let json_data;
-        if (window.dynamicSeparateSets) {
-            json_data = window.dynamicSeparateSets;
-        } else if (separated_json) {
-            json_data = await loadJsonFile(separated_json);
-            if (!json_data) {
-                console.warn('No separated sets data available');
-                return;
-            }
-        } else {
+        let json_data = window.dynamicSeparateSets;
+        if (!json_data) {
             console.warn('No separated sets data available');
             return;
         }
-        
+
         let new_links = json_data.links.filter(o => o['source'].includes(params.name) | o['target'].includes(params.name))
         let filtered_json = {
             categories: json_data.categories,
@@ -445,21 +359,13 @@ myChart.on('click', async (params) => {
     }
     if (params.dataType === 'edge') {
         document.getElementById("panel").classList.remove("hidden");
-        
-        let json_data;
-        if (window.dynamicSeparateSets) {
-            json_data = window.dynamicSeparateSets;
-        } else if (separated_json) {
-            json_data = await loadJsonFile(separated_json);
-            if (!json_data) {
-                console.warn('No separated sets data available');
-                return;
-            }
-        } else {
+
+        let json_data = window.dynamicSeparateSets;
+        if (!json_data) {
             console.warn('No separated sets data available');
             return;
         }
-        
+
         const end_nodes = params.name.split(" > ");
         let filtered_json = {
             categories: json_data.categories,
@@ -485,11 +391,11 @@ window.addEventListener('resize', function () {
 });
 
 // Pathway filter search with highlight functionality
-document.getElementById('filter_pathway').addEventListener('keydown', function(event) {
+document.getElementById('filter_pathway').addEventListener('keydown', function (event) {
     if (event.key === 'Enter') {
         event.preventDefault();
         const searchTerm = this.value.trim();
-        
+
         if (!searchTerm) {
             // Clear any existing highlights
             myChart.dispatchAction({
@@ -498,48 +404,48 @@ document.getElementById('filter_pathway').addEventListener('keydown', function(e
             });
             return;
         }
-        
+
         // Find matching node in current graph data
         if (graph_data_json && graph_data_json.nodes) {
-            const matchingNode = graph_data_json.nodes.find(node => 
-                node.name === searchTerm || 
+            const matchingNode = graph_data_json.nodes.find(node =>
+                node.name === searchTerm ||
                 node.name.toLowerCase() === searchTerm.toLowerCase()
             );
-            
+
             if (matchingNode) {
                 // Clear any existing highlights first
                 myChart.dispatchAction({
                     type: 'downplay',
                     seriesIndex: 0
                 });
-                
+
                 // Highlight the matching node and its connections
                 myChart.dispatchAction({
                     type: 'highlight',
                     seriesIndex: 0,
                     name: matchingNode.name
                 });
-                
+
                 // Visual feedback - temporarily change input border color to green
                 this.style.borderColor = '#28a745';
                 this.style.boxShadow = '0 0 5px rgba(40, 167, 69, 0.5)';
-                
+
                 setTimeout(() => {
                     this.style.borderColor = '';
                     this.style.boxShadow = '';
                 }, 2000);
-                
+
                 console.log(`Highlighted pathway: ${matchingNode.name}`);
             } else {
                 // Visual feedback - temporarily change input border color to red
                 this.style.borderColor = '#dc3545';
                 this.style.boxShadow = '0 0 5px rgba(220, 53, 69, 0.5)';
-                
+
                 setTimeout(() => {
                     this.style.borderColor = '';
                     this.style.boxShadow = '';
                 }, 2000);
-                
+
                 console.log(`Pathway not found: ${searchTerm}`);
             }
         }
@@ -547,7 +453,7 @@ document.getElementById('filter_pathway').addEventListener('keydown', function(e
 });
 
 // Clear highlight when input is cleared
-document.getElementById('filter_pathway').addEventListener('input', function() {
+document.getElementById('filter_pathway').addEventListener('input', function () {
     if (!this.value.trim()) {
         // Clear any existing highlights
         myChart.dispatchAction({
@@ -590,12 +496,12 @@ function parseCSVFiles(files) {
     return Promise.all(Array.from(files).map(file =>
         new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 const csv = e.target.result;
                 const lines = csv.split('\n');
                 const headers = lines[0].split(',').map(h => h.trim());
                 const data = [];
-                
+
                 for (let i = 1; i < lines.length; i++) {
                     if (lines[i].trim()) {
                         const values = parseCSVLine(lines[i]);
@@ -626,6 +532,8 @@ function parseCSVFiles(files) {
                                     value = [];
                                 }
                                 row['overlap_genes'] = value;
+                            } else if (header === 'Term') {
+                                row['term'] = value;
                             } else {
                                 row[header] = value;
                             }
@@ -648,18 +556,18 @@ function nodeLinkSeparateSets(allTables, pairwiseCompares) {
         table.forEach((row, rowIdx) => {
             const pathway = row.term;
             let genes = row.overlap_genes;
-            
+
             nodes.push({
                 name: `${pathway}(${pairwiseCompares[tableIdx]})`,
                 value: genes.length,
                 category: pairwiseCompares[tableIdx]
             });
-            
+
             // within table
             for (let otherIdx = rowIdx + 1; otherIdx < table.length; otherIdx++) {
                 const other = table[otherIdx];
                 let otherGenes = other.overlap_genes;
-                
+
                 if (pathway !== other.term) {
                     const shared = genes.filter(g => otherGenes.includes(g));
                     if (shared.length > 0) {
@@ -676,7 +584,7 @@ function nodeLinkSeparateSets(allTables, pairwiseCompares) {
             for (let j = tableIdx + 1; j < allTables.length; j++) {
                 allTables[j].forEach(other => {
                     let otherGenes = other.overlap_genes;
-                    
+
                     const shared = genes.filter(g => otherGenes.includes(g));
                     if (shared.length > 0) {
                         links.push({
@@ -690,12 +598,12 @@ function nodeLinkSeparateSets(allTables, pairwiseCompares) {
             }
         });
     });
-    
+
     const categories = pairwiseCompares.map((name, index) => ({
         name: name,
         itemStyle: { color: colors[index] }
     }));
-    
+
     return { nodes, links, categories };
 }
 
@@ -707,7 +615,7 @@ function nodeLinkMergePathways(allTables, pairwiseCompares) {
         table.forEach(row => {
             const term = row.term;
             let genes = row.overlap_genes;
-            
+
             const source = pairwiseCompares[tableIdx];
             const geneLen = genes.length;
             if (!pathwayMap[term]) {
@@ -769,23 +677,23 @@ function nodeLinkMergePathways(allTables, pairwiseCompares) {
             }
         }
     }
-    
+
     const categories = pairwiseCompares.map((name, index) => ({
         name: name,
         itemStyle: { color: colors[index] }
     }));
     categories.push({ name: 'mix', itemStyle: { color: '#999' } });
-    
+
     return { nodes, links, categories };
 }
 
 // CSV Upload Handler
 async function handleFiles(files, pairwiseCompares) {
     const allTables = await parseCSVFiles(files);
-    
+
     const separateSets = nodeLinkSeparateSets(allTables, pairwiseCompares);
     const mergePathway = nodeLinkMergePathways(allTables, pairwiseCompares);
-    
+
     // Ensure mix category has proper styling in categories
     if (mergePathway.categories) {
         const mixCategory = mergePathway.categories.find(cat => cat.name === 'mix');
@@ -823,7 +731,7 @@ async function handleFiles(files, pairwiseCompares) {
             };
         }
     }
-    
+
     return { separateSets, mergePathway };
 }
 
@@ -831,7 +739,7 @@ async function handleFiles(files, pairwiseCompares) {
 function extractComparisonName(filename) {
     // Remove file extension
     let name = filename.replace(/\.(csv|CSV)$/, '');
-    
+
     // Remove common suffixes
     const suffixesToRemove = [
         '_pathway_enrichment',
@@ -840,22 +748,22 @@ function extractComparisonName(filename) {
         '_GSEA',
         '_results'
     ];
-    
+
     suffixesToRemove.forEach(suffix => {
         name = name.replace(new RegExp(suffix + '$', 'i'), '');
     });
-    
+
     // Clean up any remaining underscores or hyphens at the end
     name = name.replace(/[_-]+$/, '');
-    
+
     return name;
 }
 
 // CSV Upload Event Listeners
-document.getElementById('csvInput').addEventListener('change', function() {
+document.getElementById('csvInput').addEventListener('change', function () {
     const files = this.files;
     const preview = document.getElementById('file-preview');
-    
+
     if (files.length > 0) {
         const fileNames = Array.from(files).map((file, index) => {
             const comparisonName = extractComparisonName(file.name);
@@ -877,161 +785,29 @@ document.getElementById('process-csv').addEventListener('click', async () => {
         showLoadingOverlay('Processing CSV files...');
         myChart.showLoading('Loading CSV data...');
         // Extract comparison names from filenames
-        const comparisonNames = Array.from(fileInput.files).map(file => 
+        const comparisonNames = Array.from(fileInput.files).map(file =>
             extractComparisonName(file.name)
         );
-        
+
         console.log('Detected comparison names:', comparisonNames);
-        
+
         const result = await handleFiles(fileInput.files, comparisonNames);
-        
+
         // Store dynamic data globally
         window.dynamicSeparateSets = result.separateSets;
         window.dynamicMergePathway = result.mergePathway;
-        
-        // Update the current data paths
-        separated_json = 'dynamic';
-        merged_json = 'dynamic';
-        
-        // Enable download buttons
-        document.getElementById('download-separate-json').disabled = false;
-        document.getElementById('download-merge-json').disabled = false;
-        
+
         // Hide loading and load the merged pathway graph by default
         myChart.hideLoading();
         hideLoadingOverlay();
         make_graph(result.mergePathway);
-        
+
         alert(`CSV files processed successfully!\nDetected comparisons: ${comparisonNames.join(', ')}`);
     } catch (error) {
         myChart.hideLoading();
         hideLoadingOverlay();
         console.error('Error processing CSV files:', error);
         alert('Error processing CSV files: ' + error.message);
-    }
-});
-
-// Download processed separate sets JSON
-document.getElementById('download-separate-json').addEventListener('click', function() {
-    if (window.dynamicSeparateSets) {
-        const dataStr = JSON.stringify(window.dynamicSeparateSets, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'separate_sets_node_link.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-});
-
-// Download processed merged pathway JSON
-document.getElementById('download-merge-json').addEventListener('click', function() {
-    if (window.dynamicMergePathway) {
-        const dataStr = JSON.stringify(window.dynamicMergePathway, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'merged_pathway_node_link.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-});
-
-// JSON Upload Event Listeners
-document.getElementById('jsonInput').addEventListener('change', function() {
-    const files = this.files;
-    const preview = document.getElementById('json-file-preview');
-    
-    if (files.length > 0) {
-        const fileNames = Array.from(files).map((file, index) => {
-            const type = file.name.includes('separate') || file.name.includes('Sets') ? 'Separate Sets' : 
-                        file.name.includes('merge') || file.name.includes('Pathway') ? 'Merge Pathway' : 'Unknown';
-            return `${index + 1}. ${file.name} (${type})`;
-        });
-        preview.innerHTML = `Files selected:<br>${fileNames.join('<br>')}`;
-    } else {
-        preview.innerHTML = '';
-    }
-});
-
-document.getElementById('process-json').addEventListener('click', async () => {
-    const fileInput = document.getElementById('jsonInput');
-    if (fileInput.files.length === 0) {
-        alert('Please select JSON files');
-        return;
-    }
-    try {
-        showLoadingOverlay('Processing JSON files...');
-        myChart.showLoading('Loading JSON files...');
-        
-        const files = Array.from(fileInput.files);
-        let separateData = null;
-        let mergeData = null;
-        
-        // Process each JSON file
-        for (const file of files) {
-            const data = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    try {
-                        resolve(JSON.parse(reader.result));
-                    } catch (error) {
-                        console.error('Error parsing JSON file:', file.name, error);
-                        resolve(null);
-                    }
-                };
-                reader.readAsText(file);
-            });
-            
-            if (data) {
-                // Determine file type based on filename or structure
-                if (file.name.includes('separate') || file.name.includes('Sets') || 
-                    (data.nodes && data.nodes.some(n => n.name.includes('(')))) {
-                    separateData = data;
-                    console.log('Loaded separate sets data from:', file.name);
-                } else if (file.name.includes('merge') || file.name.includes('Pathway') ||
-                          (data.nodes && data.nodes.some(n => n.proportion))) {
-                    mergeData = data;
-                    console.log('Loaded merge pathway data from:', file.name);
-                }
-            }
-        }
-        
-        // Store the loaded data
-        if (separateData) {
-            window.dynamicSeparateSets = separateData;
-            separated_json = 'dynamic';
-        }
-        if (mergeData) {
-            window.dynamicMergePathway = mergeData;
-            merged_json = 'dynamic';
-        }
-        
-        myChart.hideLoading();
-        hideLoadingOverlay();
-        
-        // Load the appropriate graph
-        if (mergeData) {
-            make_graph(mergeData);
-            alert(`JSON files loaded successfully!\nLoaded: ${mergeData ? 'Merge Pathway' : ''}${separateData ? (mergeData ? ' + Separate Sets' : 'Separate Sets') : ''}`);
-        } else if (separateData) {
-            make_graph(separateData);
-            alert('JSON files loaded successfully!\nLoaded: Separate Sets');
-        } else {
-            alert('No valid pathway JSON files found. Please check your file format.');
-        }
-        
-    } catch (error) {
-        myChart.hideLoading();
-        hideLoadingOverlay();
-        console.error('Error processing JSON files:', error);
-        alert('Error processing JSON files: ' + error.message);
     }
 });
 

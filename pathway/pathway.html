@@ -36,8 +36,6 @@
     // Global variables to store dynamic JSON data
     let dynamicSeparateSets = null;
     let dynamicMergePathway = null;
-    let separateJsonPath = null;
-    let mergeJsonPath = null;
 
     // Standalone mode - no predefined files, use file upload only
     const predefinedFiles = {};
@@ -131,15 +129,6 @@
           <input type="file" id="csvInput" multiple accept=".csv" title="Upload CSV files for pathway enrichment" />
           <div id="file-preview" class="file-preview"></div>
           <button id="process-csv" title="Process uploaded CSV files">Process CSV Files</button>
-          <button id="download-separate-json" class="download-json-btn" style="margin-top:6px;" title="Download Separate Sets JSON" disabled>Download Separate Sets JSON</button>
-          <button id="download-merge-json" class="download-json-btn" style="margin-top:6px;" title="Download Merged Pathway JSON" disabled>Download Merged Pathway JSON</button>
-        </div>
-        <!-- JSON Upload -->
-        <div class="upload-section">
-          <label for="jsonInput">JSON Files:</label>
-          <input type="file" id="jsonInput" multiple accept=".json" title="Upload JSON files for saved networks" />
-          <div id="json-file-preview" class="file-preview"></div>
-          <button id="process-json" title="Load uploaded JSON files">Load JSON Files</button>
         </div>
       </div>
     </div>

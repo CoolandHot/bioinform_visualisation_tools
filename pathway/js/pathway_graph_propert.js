@@ -135,8 +135,11 @@ const get_top_nodeDegrees = function (chart_data, topN = 5) {
     const all_nodes = Object.entries(degrees)
         .sort((a, b) => b[1] - a[1])
     const topNodes = all_nodes.slice(0, topN);
+    if (topNodes.length === 0) {
+        return {};
+    }
     // if length < topN, threshold = value of the last node
-    const threshold = topNodes.length === topN ? topNodes[topN - 1][1] : topNodes[topNodes.length - 1][1];
+    const threshold = topNodes[topNodes.length - 1][1];
     const result = {};
     all_nodes.forEach(([node, value]) => {
         if (value >= threshold) {
